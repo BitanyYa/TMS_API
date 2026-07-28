@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
+using TmsApi.Services;
+using TmsApi.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,10 +14,20 @@ builder.Services
         "TrainingScheme",
         options => { });
 
+builder.Services
+    .AddOptions<EnrollmentOptions>()
+    .Bind(builder.Configuration.GetSection("Enrollment"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+    
 builder.Services.AddAuthorization();
 
-builder.Services.AddSingleton<IEnrollmentService, EnrollmentService>();
+builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
+
+builder.Services.AddScoped<IAuditService, AuditService>();
+
 var app = builder.Build();
+
 
 // Configure the HTTP request pipeline.
 
