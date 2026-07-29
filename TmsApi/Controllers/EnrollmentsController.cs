@@ -45,6 +45,18 @@ public class EnrollmentsController : ControllerBase
             new { id = record.Id },
             record);
     }
+
+    // DELETE /api/enrollments/{id}
+[HttpDelete("{id:guid}")]
+public async Task<IActionResult> Delete(Guid id)
+{
+    var deleted = await _enrollmentService.DeleteAsync(id);
+
+    if (!deleted)
+        return NotFound();
+
+    return NoContent();
+}
 }
 
 public record CreateEnrollmentRequest(
