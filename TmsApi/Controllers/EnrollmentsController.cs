@@ -45,6 +45,12 @@ public class EnrollmentsController : ControllerBase
             new { id = record.Id },
             record);
     }
+
+    [HttpGet("crash")]
+    public IActionResult Crash()
+    {
+        throw new InvalidOperationException("This is a test exception.");
+    }
 }
 
 public record CreateEnrollmentRequest(
