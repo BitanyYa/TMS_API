@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using TmsApi.Services;
 using TmsApi.Configuration;
+using TmsApi.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,8 +27,13 @@ builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
 builder.Services.AddScoped<IAuditService, AuditService>();
 
+builder.Services.AddProblemDetails();
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
 var app = builder.Build();
 
+app.UseExceptionHandler();
 
 // Configure the HTTP request pipeline.
 

@@ -78,11 +78,6 @@ public class EnrollmentService : IEnrollmentService
     return Task.FromResult(removed);
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
-    {
-        return await Task.FromResult(_store.Remove(id));
-    }
-
 }
 
 public record EnrollmentRecord(
