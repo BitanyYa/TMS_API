@@ -13,6 +13,6 @@ public class Enrollment
     public Course Course { get; set; } = null!;
 
     public DateTime EnrolledAt { get; set; } = DateTime.UtcNow;
-
+    public bool IsActive { get; set; } = true;
     public decimal? Grade { get; set; }
 }
