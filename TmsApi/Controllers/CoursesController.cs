@@ -53,4 +53,13 @@ public class CoursesController : ControllerBase
         var exists = await _courseService.CodeExistsAsync(code, ct);
         return Ok(new { exists });
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetCourses(
+    [FromQuery] PagedRequest request, CancellationToken ct)
+    {
+    var result = await _courseService.GetCoursesAsync(request, ct);
+    return Ok(result);
+    }
+
 }

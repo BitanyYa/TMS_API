@@ -5,6 +5,8 @@ using TmsApi.Configuration;
 using TmsApi.Infrastructure;
 using TmsApi.Data;
 using TmsApi.Entities;
+using TmsApi.Filters;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,6 +42,12 @@ builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 
 builder.Services.AddProblemDetails();
+
+// Ensure using TmsApi.Filters; is at the top
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<AuditLogFilter>();
+});
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
