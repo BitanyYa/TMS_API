@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using TmsApi.Entities;
 using TmsApi.Services;
 
 namespace TmsApi.Controllers;
@@ -52,7 +53,3 @@ public class EnrollmentsController : ControllerBase
         throw new InvalidOperationException("This is a test exception.");
     }
 }
-
-public record CreateEnrollmentRequest(
-    string StudentId,
-    string CourseCode);
