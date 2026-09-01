@@ -35,6 +35,8 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
+builder.Services.AddScoped<ICourseService, CourseService>();
+
 builder.Services.AddScoped<IAuditService, AuditService>();
 
 builder.Services.AddProblemDetails();
@@ -115,19 +117,19 @@ using (var scope = app.Services.CreateScope())
             {
                 Code = "CS-101",
                 Title = "Introduction to Computer Science",
-                Capacity = 30
+                MaxCapacity = 30
             },
             new()
             {
                 Code = "CS-201",
                 Title = "Data Structures and Algorithms",
-                Capacity = 25
+                MaxCapacity = 25
             },
             new()
             {
                 Code = "MAT-101",
                 Title = "Calculus I",
-                Capacity = 40
+                MaxCapacity = 40
             }
         };
 

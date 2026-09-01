@@ -1,0 +1,11 @@
+using TmsApi.Dtos;
+
+namespace TmsApi.Services;
+
+public interface ICourseService
+{
+    Task<List<CourseResponseDto>> GetAllAsync(CancellationToken ct);
+    Task<CourseResponseDto?> GetByIdAsync(int id, CancellationToken ct);
+    Task<CourseResponseDto> CreateAsync(CreateCourseRequest request, CancellationToken ct);
+    Task<bool> CodeExistsAsync(string code, CancellationToken ct);
+}
