@@ -1,91 +1,56 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using TmsApi.Services;
+using Microsoft.EntityFrameworkCore;
+using TmsApi.Data;
+using TmsApi.Dtos;
+using TmsApi.Entities;
 
 namespace TmsApi.Services;
 
-
-public interface IEnrollmentService
-{
-    Task<EnrollmentRecord> EnrollAsync(
-        string studentId, 
-        string courseCode
-        );
-
-    Task<EnrollmentRecord?> GetByIdAsync(string id);
-
-    Task<IReadOnlyList<EnrollmentRecord>> GetAllAsync();
-
-    Task<bool> DeleteAsync(string id);
-}
-
 public class EnrollmentService : IEnrollmentService
 {
-    private readonly Dictionary<string, EnrollmentRecord> _store = new();
-    private readonly ILogger<EnrollmentService> _logger;
-    private readonly IAuditService _auditService;
+    private readonly TmsDbContext _context;
 
-    public EnrollmentService(ILogger<EnrollmentService> logger, IAuditService auditService)
+    public EnrollmentService(TmsDbContext context)
     {
-        _logger = logger;
-        _auditService = auditService;
+        _context = context;
     }
 
-    public Task<EnrollmentRecord> EnrollAsync(string studentId, string courseCode)
+    public async Task<EnrollmentResponseDto?> GetByIdAsync(int courseId, int id, CancellationToken ct)
     {
-    var id = Guid.NewGuid().ToString("N")[..8];
+        var enrollment = await _context.Enrollments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Id == id && e.CourseId == courseId, ct);
 
-    var record = new EnrollmentRecord(
-        id,
-        studentId,
-        courseCode,
-        DateTime.UtcNow);
-
-    _store[id] = record;
-    _auditService.Record(
-    $"Student {studentId} enrolled in {courseCode}");
-
-    _logger.LogInformation(
-    "Enrollment created at {EnrolledAt}",
-    record.EnrolledAt);
-    
-    _logger.LogInformation(
-        "Enrolled {StudentId} in {CourseCode} record {EnrollmentId}",
-        studentId,
-        courseCode,
-        id);
-
-    return Task.FromResult(record);
+        return enrollment is null
+            ? null
+            : new EnrollmentResponseDto(enrollment.Id, enrollment.CourseId, enrollment.StudentId, enrollment.EnrolledAt);
     }
 
-    // Methods will go here
-
-    public Task<EnrollmentRecord?> GetByIdAsync(string id)
+    public async Task<EnrollmentResponseDto> CreateAsync(int courseId, EnrollStudentRequest request, CancellationToken ct)
     {
-        _store.TryGetValue(id, out var record);
-        return Task.FromResult(record);
+        var enrollment = new Enrollment
+        {
+            CourseId = courseId,
+            StudentId = request.StudentId,
+            EnrolledAt = DateTime.UtcNow
+        };
+
+        _context.Enrollments.Add(enrollment);
+        await _context.SaveChangesAsync(ct);
+
+        return new EnrollmentResponseDto(enrollment.Id, enrollment.CourseId, enrollment.StudentId, enrollment.EnrolledAt);
     }
 
-    
-    public Task<IReadOnlyList<EnrollmentRecord>> GetAllAsync()
+    public async Task<IReadOnlyList<EnrollmentResponseDto>> GetByCourseAsync(int courseId, CancellationToken ct)
     {
-        return Task.FromResult<IReadOnlyList<EnrollmentRecord>>(_store.Values.ToList());
-    }
+        var enrollments = await _context.Enrollments
+            .AsNoTracking()
+            .Where(e => e.CourseId == courseId)
+            .Select(e => new EnrollmentResponseDto(e.Id, e.CourseId, e.StudentId, e.EnrolledAt))
+            .ToListAsync(ct);
 
-    public Task<bool> DeleteAsync(string id)
-    {
-    var removed = _store.Remove(id);
-    return Task.FromResult(removed);
+        return enrollments;
     }
-
 }
-
-public record EnrollmentRecord(
-    string Id,
-    string StudentId,
-    string CourseCode,
-    DateTime EnrolledAt
-);
 
 
 
