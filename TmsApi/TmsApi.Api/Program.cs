@@ -37,7 +37,8 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins("http://localhost:4200")
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -189,11 +190,39 @@ builder.Services.AddSingleton<ITranscriptNotificationService, SignalRTranscriptN
 builder.Services.AddHostedService<TranscriptWorker>();
 builder.Services.AddSignalR();
 
-builder.Services
-    .AddAuthentication("TrainingScheme")
-    .AddScheme<AuthenticationSchemeOptions, TrainingAuthHandler>(
-        "TrainingScheme",
-        options => { });
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme;
+})
+.AddCookie(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme, options =>
+{
+    options.Cookie.Name = "tms_auth";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Events.OnRedirectToLogin = context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return Task.CompletedTask;
+    };
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return Task.CompletedTask;
+    };
+});
+
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-XSRF-TOKEN";
+    options.Cookie.Name = "XSRF-TOKEN";
+    options.Cookie.HttpOnly = false;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+});
+
 
 builder.Services
     .AddOptions<EnrollmentOptions>()
@@ -213,6 +242,7 @@ var app = builder.Build();
 app.UseCors("AllowAngular");
 
 app.UseExceptionHandler();
+app.UseStatusCodePages();
 
 app.UseHttpsRedirection();
 
@@ -230,7 +260,7 @@ app.UseMiddleware<V1DeprecationMiddleware>();
 app.MapControllers();
 
 // Map SignalR Hub
-app.MapHub<TmsHub>("/hubs/tms");
+app.MapHub<TmsHub>("/hubs/tms").RequireCors("AllowAngular");
 
 app.MapScalarApiReference(options =>
 {
