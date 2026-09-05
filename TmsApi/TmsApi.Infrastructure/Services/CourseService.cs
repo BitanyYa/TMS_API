@@ -54,6 +54,12 @@ public class CourseService(TmsDbContext context, ILogger<CourseService> logger) 
             .AsNoTracking()
             .AnyAsync(c => c.Code == code, ct);
 
+    public Task<Course?> GetByCodeAsync(string code, CancellationToken ct) =>
+        context.Courses
+            .Include(c => c.Enrollments)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Code == code, ct);
+
     public async Task<PagedResponse<CourseResponseDto>> GetCoursesAsync(PagedRequest request, CancellationToken ct)
     {
         var query = context.Courses.AsNoTracking();

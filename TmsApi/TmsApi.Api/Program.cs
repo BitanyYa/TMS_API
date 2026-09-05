@@ -1,15 +1,20 @@
+using Asp.Versioning;
+using FluentValidation;
+using MediatR;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
+using TmsApi.Api.ExceptionHandlers;
+using TmsApi.Api.Filters;
+using TmsApi.Api.Middleware;
+using TmsApi.Application.Behaviors;
 using TmsApi.Application.DTOs;
+using TmsApi.Application.Enrollments.Commands;
 using TmsApi.Application.Interfaces;
 using TmsApi.Domain.Entities;
 using TmsApi.Infrastructure.Persistence;
 using TmsApi.Infrastructure.Persistence.Configurations;
 using TmsApi.Infrastructure.Services;
-using TmsApi.Api.Filters;
-using TmsApi.Api.Middleware;
-using TmsApi.Api.ExceptionHandlers;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,7 +38,47 @@ builder.Services.AddDbContext<TmsDbContext>(options =>
         .EnableSensitiveDataLogging();
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<AuditLogFilter>();
+});
+
+// API Versioning Configuration
+builder.Services.AddOpenApi("v1", options =>
+{
+    options.ShouldInclude = description => description.GroupName == "v1";
+});
+builder.Services.AddOpenApi("v2", options =>
+{
+    options.ShouldInclude = description => description.GroupName == "v2";
+});
+
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+    options.ApiVersionReader = new UrlSegmentApiVersionReader();
+})
+.AddMvc()
+.AddApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = true;
+});
+
+// CQRS & MediatR Pipeline Registration
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(typeof(EnrollStudentHandler).Assembly));
+
+builder.Services.AddValidatorsFromAssembly(typeof(EnrollStudentValidator).Assembly);
+
+// LoggingBehavior FIRST — it must wrap ValidationBehavior
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 builder.Services
     .AddAuthentication("TrainingScheme")
@@ -50,20 +95,8 @@ builder.Services
 builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
-
 builder.Services.AddScoped<ICourseService, CourseService>();
-
 builder.Services.AddScoped<IAuditService, AuditService>();
-
-builder.Services.AddProblemDetails();
-
-// Ensure using TmsApi.Filters; is at the top
-builder.Services.AddControllers(options =>
-{
-    options.Filters.Add<AuditLogFilter>();
-});
-
-builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 var app = builder.Build();
 
@@ -71,19 +104,28 @@ app.UseCors("AllowAngular");
 
 app.UseExceptionHandler();
 
-// Configure the HTTP request pipeline.
-
-app.UseExceptionHandler("/error");
-
 app.UseHttpsRedirection();
 
 app.UseMiddleware<RequestLoggingMiddleware>();
 
 app.UseAuthentication();
-
 app.UseAuthorization();
 
+// V1 Deprecation Middleware before MapControllers
+app.UseMiddleware<V1DeprecationMiddleware>();
+
 app.MapControllers();
+
+app.MapScalarApiReference(options =>
+{
+    options.WithTitle("TMS API Reference")
+        .WithTheme(ScalarTheme.DeepSpace)
+        .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+
+    options
+        .AddDocument("v1", "API Version 1.0")
+        .AddDocument("v2", "API Version 2.0");
+});
 
 // Seed test data at startup
 using (var scope = app.Services.CreateScope())
