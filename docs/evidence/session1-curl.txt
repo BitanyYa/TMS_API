@@ -1,0 +1,16 @@
+=== GET /api/v1/courses (Deprecated Version 1.0) ===
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Deprecation: true
+Sunset: Thu, 31 Dec 2026 00:00:00 GMT
+Link: <https://localhost:5001/api/v2/courses>; rel="successor-version"
+api-supported-versions: 1.0, 2.0
+
+{"items":[{"id":1,"code":"CSE-101","title":"Web Development Fundamentals","maxCapacity":30,"enrollmentCount":0}],"totalCount":1,"page":1,"pageSize":20,"totalPages":1,"hasNext":false,"hasPrevious":false}
+
+=== GET /api/v2/courses (Active Version 2.0) ===
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+api-supported-versions: 1.0, 2.0
+
+{"data":[{"id":1,"title":"Web Development Fundamentals","code":"CSE-101","maxCapacity":30,"enrollmentCount":0}],"meta":{"totalCount":1,"page":1,"pageSize":20,"totalPages":1,"hasNext":false,"hasPrevious":false},"links":{"self":"/api/v2/courses?page=1&pageSize=20","next":null,"prev":null,"enroll":"/api/v2/enrollments"}}
