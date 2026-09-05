@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Identity;
+using TmsApi.Application.Auth;
 using System.Threading.Channels;
 using System.Threading.RateLimiting;
 using Asp.Versioning;
@@ -177,6 +179,22 @@ builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBeh
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+
+// ASP.NET Core Identity & Password Options Configuration (Module 11 Session 1)
+builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
+{
+    options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 8;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireLowercase = true;
+    options.User.RequireUniqueEmail = false;
+})
+.AddEntityFrameworkStores<TmsDbContext>()
+.AddDefaultTokenProviders();
+
+builder.Services.AddScoped<IPasswordHasherService, PasswordHasherService>();
+
 
 // Session 3 Registrations
 builder.Services.AddSingleton<ITranscriptStatusStore, InMemoryTranscriptStatusStore>();

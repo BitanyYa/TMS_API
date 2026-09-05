@@ -1,9 +1,15 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using TmsApi.Domain.Entities;
 
 namespace TmsApi.Infrastructure.Persistence;
 
-public class TmsDbContext(DbContextOptions<TmsDbContext> options) : DbContext(options)
+public class TmsDbContext(DbContextOptions<TmsDbContext> options) 
+    : IdentityDbContext<ApplicationUser, ApplicationRole, int>(options)
 {
     public DbSet<Student> Students => Set<Student>();
     public DbSet<Course> Courses => Set<Course>();
@@ -15,6 +21,7 @@ public class TmsDbContext(DbContextOptions<TmsDbContext> options) : DbContext(op
         // Automatically discovers and applies all IEntityTypeConfiguration classes
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(TmsDbContext).Assembly);
     }
+
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var entries = ChangeTracker.Entries<Student>()
@@ -25,6 +32,6 @@ public class TmsDbContext(DbContextOptions<TmsDbContext> options) : DbContext(op
             entry.Property("LastUpdated").CurrentValue = DateTime.UtcNow;
         }
 
-    return base.SaveChangesAsync(cancellationToken);
+        return base.SaveChangesAsync(cancellationToken);
     }
 }
