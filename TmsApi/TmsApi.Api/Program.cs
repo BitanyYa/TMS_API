@@ -1,3 +1,4 @@
+using System.Threading.Channels;
 using System.Threading.RateLimiting;
 using Asp.Versioning;
 using FluentValidation;
@@ -10,16 +11,22 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Scalar.AspNetCore;
 using TmsApi.Api.ExceptionHandlers;
 using TmsApi.Api.Filters;
+using TmsApi.Api.Hubs;
 using TmsApi.Api.Middleware;
+using TmsApi.Api.Notifications;
 using TmsApi.Api.RateLimiting;
 using TmsApi.Application.Behaviors;
 using TmsApi.Application.DTOs;
 using TmsApi.Application.Enrollments.Commands;
 using TmsApi.Application.Interfaces;
+using TmsApi.Application.Notifications;
+using TmsApi.Application.Transcripts;
 using TmsApi.Domain.Entities;
 using TmsApi.Infrastructure.Persistence;
 using TmsApi.Infrastructure.Persistence.Configurations;
 using TmsApi.Infrastructure.Services;
+using TmsApi.Infrastructure.Transcripts;
+using TmsApi.Infrastructure.Workers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -170,6 +177,18 @@ builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBeh
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+// Session 3 Registrations
+builder.Services.AddSingleton<ITranscriptStatusStore, InMemoryTranscriptStatusStore>();
+builder.Services.AddSingleton(Channel.CreateBounded<TranscriptRequest>(
+    new BoundedChannelOptions(100)
+    {
+        FullMode = BoundedChannelFullMode.Wait
+    }));
+
+builder.Services.AddSingleton<ITranscriptNotificationService, SignalRTranscriptNotificationService>();
+builder.Services.AddHostedService<TranscriptWorker>();
+builder.Services.AddSignalR();
+
 builder.Services
     .AddAuthentication("TrainingScheme")
     .AddScheme<AuthenticationSchemeOptions, TrainingAuthHandler>(
@@ -209,6 +228,9 @@ app.UseRateLimiter();
 app.UseMiddleware<V1DeprecationMiddleware>();
 
 app.MapControllers();
+
+// Map SignalR Hub
+app.MapHub<TmsHub>("/hubs/tms");
 
 app.MapScalarApiReference(options =>
 {
