@@ -10,6 +10,17 @@ using TmsApi.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngular", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 // Add services to the container.
 builder.Services.AddDbContext<TmsDbContext>(options =>
 {
@@ -52,6 +63,8 @@ builder.Services.AddControllers(options =>
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 var app = builder.Build();
+
+app.UseCors("AllowAngular");
 
 app.UseExceptionHandler();
 
